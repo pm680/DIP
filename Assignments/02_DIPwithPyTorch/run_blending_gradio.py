@@ -2,6 +2,8 @@ import gradio as gr
 from PIL import ImageDraw
 import numpy as np
 import torch
+import torch.nn.functional as F
+import cv2
 
 # Initialize the polygon state
 def initialize_polygon():
@@ -109,6 +111,7 @@ def create_mask_from_points(points, img_h, img_w):
     ### FILL: Obtain Mask from Polygon Points. 
     ### 0 indicates outside the Polygon.
     ### 255 indicates inside the Polygon.
+    cv2.fillPoly(mask,[points], 255)
 
     return mask
 
@@ -126,10 +129,29 @@ def cal_laplacian_loss(foreground_img, foreground_mask, blended_img, background_
     Returns:
         torch.Tensor: The computed Laplacian loss.
     """
-    loss = torch.tensor(0.0, device=foreground_img.device)
     ### FILL: Compute Laplacian Loss with https://pytorch.org/docs/stable/generated/torch.nn.functional.conv2d.html.
     ### Note: The loss is computed within the masks.
 
+    laplacian_kernel = torch.tensor([[0, -1, 0], [-1, 4, -1], [0, -1, 0]], dtype=torch.float32,
+                           device=foreground_img.device).expand(1, 3, 3, 3)
+    foreground_laplacian = F.conv2d(foreground_img, laplacian_kernel, padding=1)
+    background_laplacian = F.conv2d(blended_img, laplacian_kernel, padding=1)
+
+    index_foreground = torch.where(foreground_mask > 0)
+    index_background = torch.where(background_mask > 0)
+
+    loss_function = torch.nn.MSELoss()
+    loss = loss_function(
+        foreground_laplacian[
+            index_foreground[0],
+            index_foreground[1],
+            index_foreground[2],
+            index_foreground[3]],
+        background_laplacian[
+            index_background[0],
+            index_background[1],
+            index_background[2],
+            index_background[3]])
     return loss
 
 # Perform Poisson image blending

@@ -49,7 +49,22 @@ def point_guided_deformation(image, source_pts, target_pts, alpha=1.0, eps=1e-8)
     """
     
     warped_image = np.array(image)
+    if len(points_src) == 0:
+        return warped_image
+
     ### FILL: 基于MLS or RBF 实现 image warping
+    h, w = image.shape[:2]
+
+    # Iterate over each pixel in the image
+    for i in range(h):
+        for j in range(w):
+            point = np.array([j, i])
+
+            weights = 1 / (np.linalg.norm(point - points_src, axis=1) ** (2 * alpha))
+            p_ = np.array(points_src) - np.average(points_src, weights=weights) / np.sum(weights)
+            q_ = np.array(points_dst) - np.average(points_dst, weights=weights) / np.sum(weights)
+
+            M = np.dot(np.sum(p_ * p_, axis=1), weights)
 
     return warped_image
 
