@@ -64,6 +64,7 @@ def main():
     }
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
 
     train_dataset = FacadesDataset(list_file=config['train_list'])
     valid_dataset = FacadesDataset(list_file=config['val_list'])

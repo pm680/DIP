@@ -1,62 +1,65 @@
-# Assignment 1 - Image Warping
+# 实验报告：图像变形与几何变换
 
-### In this assignment, you will implement basic transformation and point-based deformation for images.
+## 1. 实验任务
 
-### Resources:
-- [Teaching Slides](https://rec.ustc.edu.cn/share/afbf05a0-710c-11ef-80c6-518b4c8c0b96) 
-- [Paper: Image Deformation Using Moving Least Squares](https://people.engr.tamu.edu/schaefer/research/mls.pdf)
-- [Paper: Image Warping by Radial Basis Functions](https://www.sci.utah.edu/~gerig/CS6640-F2010/Project3/Arad-1995.pdf)
-- [OpenCV Geometric Transformations](https://docs.opencv.org/4.x/da/d6e/tutorial_py_geometric_transformations.html)
-- [Gradio: 一个好用的网页端交互GUI](https://www.gradio.app/)
-
-### 1. Basic Image Geometric Transformation (Scale/Rotation/Translation).
-Fill the [Missing Part](run_global_transform.py#L21) of 'run_global_transform.py'.
-
-
-### 2. Point Based Image Deformation.
-
-Implement MLS or RBF based image deformation in the [Missing Part](run_point_transform.py#L52) of 'run_point_transform.py'.
+本次实验的主要任务是实现图像的几何变换（如缩放、旋转、平移）以及基于点的图像变形（如 MLS 或 RBF 变形）。具体任务包括：
+1. 实现图像的基本几何变换（缩放、旋转、平移、水平翻转）。
+2. 实现基于控制点和目标点的图像变形算法（MLS 或 RBF）。
+3. 使用 Gradio 构建交互式界面，允许用户上传图像并实时查看变换效果。
 
 ---
-## 一个作业提交模板 (里面的结果也可参考)
 
+## 2. 实验方法
 
-## Implementation of Image Geometric Transformation
+### 2.1 几何变换
+几何变换通过仿射变换矩阵实现，具体包括：
+- **缩放**：围绕图像中心进行缩放。
+- **旋转**：围绕图像中心进行旋转。
+- **平移**：沿 X 轴和 Y 轴平移图像。
+- **水平翻转**：可选的水平翻转功能。
 
-This repository is Yudong Guo's implementation of Assignment_01 of DIP. 
+### 2.2 基于点的图像变形
+基于点的图像变形使用 MLS（Moving Least Squares）算法实现。MLS 是一种局部加权最小二乘法，通过控制点和目标点的映射关系，计算每个像素的变形位置。具体步骤包括：
+1. 计算每个像素与控制点的权重。
+2. 根据权重计算局部仿射变换矩阵。
+3. 使用仿射变换矩阵计算像素的新位置。
+4. 使用双线性插值处理非整数坐标，避免图像变形后出现空洞或黑纹。
 
-<img src="pics/teaser.png" alt="alt text" width="800">
+---
 
-## Requirements
+## 3. 实现内容
 
-To install requirements:
+### 3.1 几何变换
+在 `run_global_transform.py` 中实现了以下功能：
+- 用户可以通过界面调整缩放、旋转、平移等参数。
+- 图像变换围绕中心进行，避免边界问题。
+- 支持水平翻转功能。
 
-```setup
-python -m pip install -r requirements.txt
-```
+### 3.2 基于点的图像变形
+在 `run_point_transform.py` 中实现了以下功能：
+- 用户可以通过点击图像选择控制点和目标点。
+- 使用 MLS 算法计算图像的变形。
+- 支持双线性插值，确保变形后的图像平滑无空洞。
+- 提供清除按钮，允许用户重新选择控制点和目标点。
 
+---
 
-## Running
+## 4. 实验结果
+### 4.1 几何变换结果
+以下是几何变换的示例结果：
+![几何变换结果](result/1.gif)
 
-To run basic transformation, run:
+### 4.2 基于点的图像变形结果
+- **原始图像**：`image.png`
+  ![原始图像](result/image.png)
 
-```basic
-python run_global_transform.py
-```
+- **变形后的图像**：`warped_image.png`
+  ![变形后的图像](result/warped_image.png)
 
-To run point guided transformation, run:
+---
 
-```point
-python run_point_transform.py
-```
+## 5. 实验总结
 
-## Results (need add more result images)
-### Basic Transformation
-<img src="pics/global_demo.gif" alt="alt text" width="800">
+通过本次实验，我们成功实现了图像的几何变换和基于点的图像变形。几何变换部分支持缩放、旋转、平移和水平翻转，基于点的图像变形部分使用 MLS 算法实现了图像的局部变形。实验结果表明，算法能够有效处理图像的变形任务，且通过双线性插值避免了变形后图像出现空洞或黑纹的问题。
 
-### Point Guided Deformation:
-<img src="pics/point_demo.gif" alt="alt text" width="800">
-
-## Acknowledgement
-
->📋 Thanks for the algorithms proposed by [Image Deformation Using Moving Least Squares](https://people.engr.tamu.edu/schaefer/research/mls.pdf).
+---

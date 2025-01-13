@@ -24,7 +24,7 @@ def apply_transform(image, scale, rotation, translation_x, translation_y, flip_h
     center_x, center_y = image.shape[1] // 2, image.shape[0] // 2
 
     # Define the transformation matrix for scaling and rotation
-    transform_matrix = cv2.getRotationMatrix2D((center_x, center_y), -rotation, scale)
+    transform_matrix = cv2.getRotationMatrix2D((center_x, center_y), rotation, scale)
 
     # Apply translation
     transform_matrix[0, 2] += translation_x

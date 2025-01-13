@@ -9,6 +9,7 @@ class FullyConvNetwork(nn.Module):
             nn.Conv2d(3, 8, kernel_size=4, stride=2, padding=1),  # Input channels: 3, Output channels: 8
             nn.BatchNorm2d(8),
             nn.ReLU(inplace=True),
+            nn.Dropout2d(0.8)
         )
         ### FILL: add more CONV Layers
         self.conv2 = nn.Sequential(

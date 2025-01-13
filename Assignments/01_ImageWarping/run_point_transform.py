@@ -47,24 +47,57 @@ def point_guided_deformation(image, source_pts, target_pts, alpha=1.0, eps=1e-8)
     ------
         A deformed image.
     """
-    
-    warped_image = np.array(image)
-    if len(points_src) == 0:
-        return warped_image
 
     ### FILL: 基于MLS or RBF 实现 image warping
     h, w = image.shape[:2]
+    warped_image = np.zeros_like(image)
 
-    # Iterate over each pixel in the image
-    for i in range(h):
-        for j in range(w):
-            point = np.array([j, i])
+    y_coords, x_coords = np.mgrid[0:h, 0:w]
+    coords = np.column_stack((x_coords.ravel(), y_coords.ravel()))
 
-            weights = 1 / (np.linalg.norm(point - points_src, axis=1) ** (2 * alpha))
-            p_ = np.array(points_src) - np.average(points_src, weights=weights) / np.sum(weights)
-            q_ = np.array(points_dst) - np.average(points_dst, weights=weights) / np.sum(weights)
+    for idx, v in enumerate(coords):
+        x, y = v
+        weights = 1.0 / (np.power(np.linalg.norm(source_pts - v, axis=1), 2 * alpha) + eps)
+        p_star = np.dot(weights, source_pts) / np.sum(weights)
+        q_star = np.dot(weights, target_pts) / np.sum(weights)
 
-            M = np.dot(np.sum(p_ * p_, axis=1), weights)
+        p_hat = source_pts - p_star
+        q_hat = target_pts - q_star
+        p_hat_bot = np.column_stack((-p_hat[:, 1], p_hat[:, 0]))
+        q_hat_bot = np.column_stack((-q_hat[:, 1], q_hat[:, 0]))
+
+        part1 = np.dot(weights, np.sum(q_hat * p_hat, axis=1))
+        part2 = np.dot(weights, np.sum(q_hat * p_hat_bot, axis=1))
+        mu = np.sqrt(part1 ** 2 + part2 ** 2)
+
+        m11 = np.dot(weights, np.sum(p_hat * q_hat, axis=1))
+        m12 = np.dot(weights, np.sum(-p_hat * q_hat_bot, axis=1))
+        m21 = np.dot(weights, np.sum(-p_hat_bot * q_hat, axis=1))
+        m22 = np.dot(weights, np.sum(p_hat_bot * q_hat_bot, axis=1))
+
+        M = np.array([[m11, m12], [m21, m22]]) / mu
+
+        original_p = (v - q_star) @ np.linalg.inv(M) + p_star
+        original_x, original_y = original_p
+
+        if 0 <= original_x < w - 1 and 0 <= original_y < h - 1:
+            x1, y1 = int(original_x), int(original_y)
+            x2, y2 = x1 + 1, y1 + 1
+
+            dx = original_x - x1
+            dy = original_y - y1
+
+            top_left = image[y1, x1]
+            top_right = image[y1, x2]
+            bottom_left = image[y2, x1]
+            bottom_right = image[y2, x2]
+
+            warped_image[y, x] = (
+                    (1 - dx) * (1 - dy) * top_left +
+                    dx * (1 - dy) * top_right +
+                    (1 - dx) * dy * bottom_left +
+                    dx * dy * bottom_right
+            )
 
     return warped_image
 

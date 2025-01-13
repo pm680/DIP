@@ -110,9 +110,8 @@ class GaussianModel(nn.Module):
         S = torch.diag_embed(scales)
         
         # Compute covariance
-        ### FILL:
-        ### Covs3d = ...
-        
+        Covs3d = R @ S @ R.transpose(-1, -2)
+
         return Covs3d
 
     def get_gaussian_params(self) -> GaussianParameters:

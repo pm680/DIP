@@ -46,13 +46,14 @@ class GaussianRenderer(nn.Module):
         # 4. Transform covariance to camera space and then to 2D
         # Compute Jacobian of perspective projection
         J_proj = torch.zeros((N, 2, 3), device=means3D.device)
-        ### FILL:
-        ### J_proj = ...
-        
+        J_proj[:, 0, 0] = 1. / depths
+        J_proj[:, 1, 1] = 1. / depths
+        J_proj[:, 0, 2] = -means3D[:, 0] / (depths ** 2)
+        J_proj[:, 1, 2] = -means3D[:, 1] / (depths ** 2)
+
         # Transform covariance to camera space
-        ### FILL: Aplly world to camera rotation to the 3d covariance matrix
-        ### covs_cam = ...  # (N, 3, 3)
-        
+        covs_cam = R @ covs3d @ R.T
+
         # Project to 2D
         covs2D = torch.bmm(J_proj, torch.bmm(covs_cam, J_proj.permute(0, 2, 1)))  # (N, 2, 2)
         
@@ -66,18 +67,32 @@ class GaussianRenderer(nn.Module):
     ) -> torch.Tensor:           # (N, H, W)
         N = means2D.shape[0]
         H, W = pixels.shape[:2]
-        
+
         # Compute offset from mean (N, H, W, 2)
         dx = pixels.unsqueeze(0) - means2D.reshape(N, 1, 1, 2)
-        
+        dx = dx.view(N, -1, 2)
+
         # Add small epsilon to diagonal for numerical stability
         eps = 1e-4
         covs2D = covs2D + eps * torch.eye(2, device=covs2D.device).unsqueeze(0)
-        
-        # Compute determinant for normalization
-        ### FILL: compute the gaussian values
-        ### gaussian = ... ## (N, H, W)
-    
+
+        inv_covs2D = torch.inverse(covs2D)  # (N, 2, 2)
+        det_covs2D = torch.det(covs2D)
+
+        gaussian = torch.zeros(N, H, W, device=covs2D.device)
+
+        g = 100  # group size
+        for i in range(0, N, g):
+            dx_g = dx[i:i + g]  # (g, H*W, 2)
+            inv_cov_g = inv_covs2D[i:i + g]  # (g, 2, 2)
+            det_cov_g = det_covs2D[i:i + g]  # (g,)
+
+            exponent = -0.5 * torch.einsum('bij,bjk,bik->bi', dx_g, inv_cov_g, dx_g)  # (g, H*W)
+
+            gaussian_g = 1 / (2 * np.pi * torch.sqrt(det_cov_g).unsqueeze(1)) * torch.exp(exponent)
+
+            gaussian[i:i+g] = gaussian_g.view(-1, H, W)
+
         return gaussian
 
     def forward(
@@ -118,8 +133,11 @@ class GaussianRenderer(nn.Module):
         colors = colors.permute(0, 2, 3, 1)  # (N, H, W, 3)
         
         # 7. Compute weights
-        ### FILL:
-        ### weights = ... # (N, H, W)
+        weights = alphas.new_zeros((N, self.H, self.W))
+        accumulated_alpha = torch.zeros((self.H, self.W), device=alphas.device)
+        for i in range(N):
+            weights[i] = alphas[i] * (1 - accumulated_alpha)
+            accumulated_alpha += alphas[i]
         
         # 8. Final rendering
         rendered = (weights.unsqueeze(-1) * colors).sum(dim=0)  # (H, W, 3)
